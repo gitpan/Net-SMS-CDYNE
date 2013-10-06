@@ -1,7 +1,7 @@
 package Net::SMS::CDYNE;
 
 use 5.008_001;
-our $VERSION = '0.06';
+our $VERSION = '0.09';
 
 use Any::Moose;
 use Any::Moose 'X::NonMoose';
@@ -44,13 +44,13 @@ sub do_cdyne_request {
     warn "Request: $uri\n" if $self->debug;
 
     $self->request($method, $uri, $body, $headers);
-    warn $body;
 
     my $response_code = $self->responseCode;
     my $content = $self->responseContent;
 
     if (! $response_code || index($response_code, '2') != 0) {
-        warn "CDYNEv2 request ($uri) failed with code $response_code: " . $content;
+        warn "CDYNEv2 request ($uri) failed with code $response_code: " . $content .
+        "\n\nRequest body was: $body\n";
         
         # return empty response
         return Net::SMS::CDYNE::Response->new(response_code => $response_code);
@@ -96,6 +96,7 @@ sub advanced_sms_send {
 
     $args{LicenseKey} ||= $self->api_key;
     my $num = delete $args{PhoneNumber};
+    my $refid = delete $args{ReferenceID} || '';
     my $doc = {
         SMSAdvancedRequest => {
             xmlns => 'http://schemas.datacontract.org/2004/07/SmsWS',
@@ -108,6 +109,7 @@ sub advanced_sms_send {
                             Message => [ delete $args{Message} ],
                             AssignedDID => [ delete $args{AssignedDID} ],
                             StatusPostBackURL => [ delete $args{StatusPostBackURL} ],
+                            ReferenceID => [ $refid ],
                             PhoneNumbers => [ {
                                 string => [
                                     {
